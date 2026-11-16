@@ -47,7 +47,7 @@ async function handle(request: Request) {
         return user ? json({ role: user.role, name: user.name, expiresAt: user.exp * 1000 }) : json({ error: "Giriş tələb olunur." }, 401);
       }
       const state = await cachedState();
-      if (path === "state") return json({ ...publicState(state, citizen), security: { highSosFlow: sosRateGuard.overloadedUntil > Date.now(), rateScope: "instance" } });
+      if (path === "state") { const bearer = request.headers.get("authorization"); const operator = bearer?.startsWith("Bearer ") ? !!(await verifyToken(bearer.slice(7), setting("CRISIS_JWT_SECRET"))) : false; return json({ ...publicState(state, citizen, Date.now(), operator), security: { highSosFlow: sosRateGuard.overloadedUntil > Date.now(), rateScope: "instance" } }); }
       if (path === "routes") {
         const p = coordinates({
           lat: Number(url.searchParams.get("lat")),
@@ -93,6 +93,14 @@ async function handle(request: Request) {
     }
     if (!body || Array.isArray(body) || typeof body !== "object")
       return json({ error: "JSON obyekt tələb olunur." }, 400);
+    if (path === "safety-lookup") {
+      if (!loginLimiter.take(ip || citizen)) return json({ error: "Çox sayda cəhd. Sonra yenidən yoxlayın." }, 429);
+      const code = typeof body.code === "string" ? body.code.trim().toLowerCase() : "";
+      if (!/^[a-f0-9]{32}$/.test(code)) return json({ status: "unknown" });
+      const state = await cachedState();
+      const found = Object.values(state.safety).some(record => record.shareCode === code && Date.now() - record.at < 24 * 3600000);
+      return json({ status: found ? "safe" : "unknown" });
+    }
     if (path === "auth/login") {
       const key = ip || citizen;
       if (!loginLimiter.take(key)) return json({ error: "Çox sayda giriş cəhdi. Bir az gözləyin.", code: "RATE_LOGIN" }, 429, { "Retry-After": String(loginLimiter.retryAfter(key)) });
@@ -143,7 +151,7 @@ async function handle(request: Request) {
     }
     const result = await mutate(path, body, citizen);
     invalidateCache();
-    return json({ ...publicState(result.state, citizen), ...(path === "checkin" ? { alreadyCheckedIn: result.unchanged } : {}) });
+    return json({ ...publicState(result.state, citizen, Date.now(), access.role !== "citizen"), ...(path === "checkin" ? { alreadyCheckedIn: result.unchanged } : {}) });
   } catch (error) {
     if (error instanceof AppError)
       return json({ error: error.message }, error.status);
