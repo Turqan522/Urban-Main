@@ -52,7 +52,7 @@ export default function CrisisApp() {
     const [point, setPoint] = useState<Point>({ lat: 40.374, lng: 49.838 }), [online, setOnline] = useState(true), [lastSync, setLastSync] = useState(0), [now, setNow] = useState(0);
     const [busy, setBusy] = useState(false), [error, setError] = useState(""), [notice, setNotice] = useState<MessageKey | "">(""), [demo, setDemo] = useState(false), [coord, setCoord] = useState(false), [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
     const [queue, setQueue] = useState<QueuedAction[]>([]), [queueError, setQueueError] = useState(""), [listening, setListening] = useState(false), [transcript, setTranscript] = useState(""), [qrOpen, setQrOpen] = useState(false), [qrCode, setQrCode] = useState("");
-    const [remoteRoutes,setRemoteRoutes]=useState<{key:string;revision:number;routes:Route[]}|null>(null),[routingFallback,setRoutingFallback]=useState(false);
+    const [remoteRoutes,setRemoteRoutes]=useState<{key:string;revision:number;routes:Route[]}|null>(null);
     const [auth,setAuth]=useState<AuthSession|null>(null),[username,setUsername]=useState("operator"),[password,setPassword]=useState(""),[floodResult,setFloodResult]=useState<{total:number;counts:Record<string,number>;limiterAverageMs:number}|null>(null);
     const current = useRef<View | null>(null), syncing = useRef(false), acting = useRef(false), paused = useRef(false), recognition = useRef<SpeechInstance | null>(null), priorRoute = useRef(""), priorPoint = useRef(""), clockOffset = useRef(0), mounted = useRef(true);
     const t = (key: MessageKey) => translate(lang, key), name = (value: string) => placeName(lang, value);
@@ -207,7 +207,7 @@ export default function CrisisApp() {
         try {const response=await fetch(`/api/routes?${params}`,{cache:"no-store",signal:AbortSignal.timeout(7000)});
             if(!response.ok)return;
             const data=await response.json() as {routes:Route[];revision:number;routing:{source:string}};
-            setRemoteRoutes({key:queryKey,revision:data.revision,routes:data.routes});setRoutingFallback(data.routing.source==="LOCAL_FALLBACK");
+            setRemoteRoutes({key:queryKey,revision:data.revision,routes:data.routes});
         } catch { /* Existing local route remains available while offline. */ }
     }
     useEffect(()=>{void loadRoute();},[queryKey,s?.serverTime,online]);
@@ -360,7 +360,6 @@ export default function CrisisApp() {
         {mode === "dispatch" && (!auth ? <form className="operator-login" onSubmit={loginOperator}><strong>{t("operatorLogin")}</strong><label>{t("username")}<input value={username} onChange={event=>setUsername(event.target.value)} autoComplete="username" required/></label><label>{t("password")}<input type="password" value={password} onChange={event=>setPassword(event.target.value)} autoComplete="current-password" required/></label><button className="btn dark" type="submit">{t("login")}</button></form> : <div className="operator-session"><span>{auth.role === "admin" ? t("adminRole") : t("operatorRole")}</span><button className="btn light small" onClick={logoutOperator}>{t("logout")}</button></div>)}
         {mode === "dispatch" && s?.security?.highSosFlow && <div className="alert-banner warning" role="status"><TriangleAlert size={18}/>{t("floodBanner")}</div>}
         {floodResult && mode === "dispatch" && <div className="alert-banner warning" role="status"><TriangleAlert size={18}/>{t("floodResult")}: {floodResult.total} · {t("accepted")}: {floodResult.counts.accepted} · 503: {floodResult.counts.RATE_GLOBAL} · {t("limiterAverage")}: {floodResult.limiterAverageMs.toFixed(2)} ms</div>}
-        {routingFallback && online && <div className="alert-banner warning" role="status"><TriangleAlert size={18}/>{t("fallback")}</div>}
         {!online && <div className="alert-banner error" role="status"><TriangleAlert size={18}/>{t("stale")}</div>}
         {error && <div className="alert-banner error" role="alert"><TriangleAlert size={18}/><span>{displayError(error)}</span><button aria-label={t("close")} onClick={() => setError("")}><X size={17}/></button></div>}
         {notice && <div className="alert-banner success" role="status"><Check size={18}/><span>{t(notice)}</span><button aria-label={t("close")} onClick={() => setNotice("")}><X size={17}/></button></div>}
