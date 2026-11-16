@@ -35,6 +35,7 @@ export type Sos = Point & {
   priority: 0 | 1;
   needsAccessible: boolean;
   voiceTranscript?: string;
+  details?: { people?: number; injured?: boolean; setting?: "indoors" | "outdoors"; note?: string };
   createdAt: number;
   status: "active" | "safe" | "resolved";
   assignedTeam?: string;
@@ -73,7 +74,7 @@ export type Config = {
   alertLimit: number;
 };
 export type State = {
-  safety: Record<string, { at: number; status: "safe"; shelterId?: string }>;
+  safety: Record<string, { at: number; status: "safe"; shelterId?: string; shareCode?: string }>;
   accessibleMode: Record<string, boolean>;
   checkins: { citizenId: string; shelterId: string; at: number }[];
   receipts: Record<string, number>;

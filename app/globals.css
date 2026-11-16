@@ -2644,3 +2644,9 @@ td {
 
 /* Emergency actions and clear simulated status */
 .quick-actions{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 18px}.quick-actions .btn{min-height:54px;flex:1 1 210px;font-size:15px;font-weight:700}.citizen-metrics{margin-top:16px}.danger-types button.selected-hazard{border:2px solid #b9402e;background:#fff0eb;color:#842a1e;font-weight:700}.danger-types button{min-height:44px}.sos-status{margin:0 0 18px;border-left:4px solid #d65a43}.sos-status h2{margin-bottom:8px}.sos-status strong{color:#82301f}.sos-status p{margin:8px 0}.news-context{display:block;margin-top:8px;color:#485d64;font-weight:600}.alternative small{display:block}.citizen-controls label,.citizen-controls small{color:#455962}.demo-panel p{line-height:1.55}
+
+.real-map{height:520px;min-height:350px;border-radius:12px;z-index:0;background:#e8ecea}.leaflet-container{font-family:inherit}@media(max-width:600px){.real-map{height:380px}}
+
+.sos-details{margin:12px 0}.sos-details label{display:block;margin:8px 0}.sos-details input,.sos-details select,.sos-details textarea{display:block;width:100%;padding:8px;border:1px solid #ccd5d8;border-radius:7px}.incident-details{padding:10px;background:#f4f7f7;border-radius:8px;overflow-wrap:anywhere}
+
+.safety-code{display:block;overflow-wrap:anywhere;font-size:1rem;padding:10px;background:#eef6f2}.real-map img{max-width:none}

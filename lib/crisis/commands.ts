@@ -49,6 +49,16 @@ export function command(state: State, action: string, b: Record<string, unknown>
     if (action === "sos") {
         check(TYPES.includes(String(b.type)), "Təhlükə növü düzgün deyil.");
         const p = coordinates(b);
+        let details: Sos["details"];
+        if (b.details !== undefined) {
+            check(!!b.details && typeof b.details === "object" && !Array.isArray(b.details), "SOS detalları düzgün deyil.");
+            const d = b.details as Record<string, unknown>;
+            check(d.people === undefined || Number.isInteger(d.people) && Number(d.people) >= 1 && Number(d.people) <= 1000, "İnsan sayı 1–1000 olmalıdır.");
+            check(d.injured === undefined || typeof d.injured === "boolean", "Yaralı seçimi düzgün deyil.");
+            check(d.setting === undefined || d.setting === "indoors" || d.setting === "outdoors", "Məkan seçimi düzgün deyil.");
+            check(d.note === undefined || typeof d.note === "string" && d.note.length <= 300, "Qeyd 300 simvoldan çox ola bilməz.");
+            details = { people: d.people as number | undefined, injured: d.injured as boolean | undefined, setting: d.setting as "indoors" | "outdoors" | undefined, note: typeof d.note === "string" ? d.note.trim() : undefined };
+        }
         check(distance(p, nearestNode(s, p)) <= 1500, "SOS demo yol şəbəkəsindən çox uzaqdadır.");
         const active = s.sos.find((x) => x.citizenId === citizenId && x.status === "active");
         if (active) {
@@ -68,6 +78,7 @@ export function command(state: State, action: string, b: Record<string, unknown>
             citizenId,
             zone: nearestNode(s, p).zone,
             type: b.type as Sos["type"],
+            ...(details ? { details } : {}),
             priority: s.accessibleMode[citizenId] ? 1 : 0,
             needsAccessible: !!s.accessibleMode[citizenId],
             ...(typeof b.voiceTranscript === "string" ? { voiceTranscript: b.voiceTranscript.slice(0, 500) } : {}),
@@ -94,14 +105,14 @@ export function command(state: State, action: string, b: Record<string, unknown>
         check(sh.occupied < sh.capacity, "Məntəqə tam doludur.");
         sh.occupied += 1;
         s.sos.filter(x => x.citizenId === citizenId && x.status === "active").forEach(x => x.status = "safe");
-        s.safety[citizenId] = { at: now, status: "safe", shelterId: sh.id };
+        s.safety[citizenId] = { at: now, status: "safe", shelterId: sh.id, shareCode: crypto.randomUUID().replaceAll("-", "") };
         s.checkins.push({ citizenId, shelterId: sh.id, at: now });
         log("CHECKIN", `Vətəndaş ${sh.name} məntəqəsinə çatdı (QR). SOS bağlandı.`, { subject: sh.name, occupied: sh.occupied, capacity: sh.capacity });
     }
     else if (action === "safe") {
         const own = s.sos.filter((x) => x.citizenId === citizenId && x.status === "active");
         own.forEach((x) => (x.status = "safe"));
-        s.safety[citizenId] = { at: now, status: "safe" };
+        s.safety[citizenId] = { at: now, status: "safe", shareCode: crypto.randomUUID().replaceAll("-", "") };
         log("SAFE", `${own.length} aktiv SOS təhlükəsiz statusuna keçirildi.`, { count: own.length });
     }
     else if (action === "road") {
