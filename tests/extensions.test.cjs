@@ -157,3 +157,19 @@ test('incident display groups accessibility and medical reports before other inc
   ];
   assert.deepEqual(reports.sort(compareIncidentDisplay).map(x => x.createdAt), [5, 20, 10, 30]);
 });
+
+test('SOS optional details are validated and visible only to their owner or operator', () => {
+  const s = command(fresh(), 'sos', {lat:40.374,lng:49.838,type:'fire',details:{people:3,injured:true,setting:'indoors',note:'3rd floor'}}, 'owner', NOW);
+  assert.equal(publicState(s,'owner',NOW).sos[0].details.note, '3rd floor');
+  assert.equal(publicState(s,'other',NOW).sos[0].details, undefined);
+  assert.equal(publicState(s,'operator',NOW,true).sos[0].details.people, 3);
+  assert.throws(() => command(fresh(),'sos',{lat:40.374,lng:49.838,type:'fire',details:{people:1001}},'owner',NOW));
+});
+test('safety sharing code is private and invalidated by a new SOS', () => {
+  const safe = command(fresh(), 'safe', {}, 'owner', NOW);
+  const code = publicState(safe,'owner',NOW).mySafety.shareCode;
+  assert.match(code, /^[a-f0-9]{32}$/);
+  assert.equal(publicState(safe,'other',NOW).mySafety, null);
+  const active = command(safe,'sos',{lat:40.374,lng:49.838,type:'fire'},'owner',NOW+1);
+  assert.equal(active.safety.owner, undefined);
+});
