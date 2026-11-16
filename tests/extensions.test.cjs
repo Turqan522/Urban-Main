@@ -146,3 +146,14 @@ test("enqueue during delivery is not overwritten by removal of prior request",as
 test("unavailable local storage does not pretend a request was saved",()=>{
   const disk={getItem:()=>null,setItem:()=>{throw Error("quota");}};assert.throws(()=>enqueue(disk,{id:"first",path:"sos",body:{},createdAt:NOW}),/quota/);
 });
+
+test('incident display groups accessibility and medical reports before other incidents', () => {
+  const { compareIncidentDisplay } = require('../outputs/test-build/crisis/presentation.js');
+  const reports = [
+    { type: 'fire', priority: 0, createdAt: 30 },
+    { type: 'medical', priority: 0, createdAt: 10 },
+    { type: 'flood', priority: 1, createdAt: 5 },
+    { type: 'medical', priority: 0, createdAt: 20 },
+  ];
+  assert.deepEqual(reports.sort(compareIncidentDisplay).map(x => x.createdAt), [5, 20, 10, 30]);
+});
