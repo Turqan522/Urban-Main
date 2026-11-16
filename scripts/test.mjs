@@ -20,6 +20,7 @@ const compile = spawnSync(
     "--rootDir",
     "lib",
     "lib/crisis/types.ts",
+    "lib/crisis/presentation.ts",
     "lib/crisis/seed.ts",
     "lib/crisis/engine.ts",
     "lib/crisis/commands.ts",
