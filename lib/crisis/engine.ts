@@ -156,6 +156,7 @@ export function publicState(s: State, citizenId: string, now = Date.now(), opera
         ...visible,
         sessionId: citizenId,
         mySafety: safety[citizenId] ?? null,
+        safetyCount: Object.keys(safety).length,
         myAccessibleMode: accessibleMode[citizenId] ?? false,
         myCheckin: checkins.find(x => x.citizenId === citizenId) ? (({ shelterId, at }) => ({ shelterId, at }))(checkins.find(x => x.citizenId === citizenId)!) : null,
         myVolunteer: volunteers.find(v=>v.citizenId===citizenId) ? (({citizenId:_owner,phone:_phone,...rest})=>rest)(volunteers.find(v=>v.citizenId===citizenId)!) : null,
