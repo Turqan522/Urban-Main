@@ -149,7 +149,7 @@ export function zoneStats(s: State) {
             latestAt: reports.length ? Math.max(...reports.map(x => x.createdAt)) : null };
     });
 }
-export function publicState(s: State, citizenId: string, now = Date.now()) {
+export function publicState(s: State, citizenId: string, now = Date.now(), operator = false) {
     const current = alerts(s, now);
     const { safety, accessibleMode, checkins, receipts: _receipts, volunteers, ...visible } = s;
     return {
@@ -161,8 +161,9 @@ export function publicState(s: State, citizenId: string, now = Date.now()) {
         myVolunteer: volunteers.find(v=>v.citizenId===citizenId) ? (({citizenId:_owner,phone:_phone,...rest})=>rest)(volunteers.find(v=>v.citizenId===citizenId)!) : null,
         volunteers: volunteers.map(({citizenId:_owner,phone:_phone,...rest})=>rest),
         zones: zoneStats(s),
-        sos: s.sos.map(({ citizenId: owner, ...rest }) => ({
+        sos: s.sos.map(({ citizenId: owner, details, voiceTranscript, ...rest }) => ({
             ...rest,
+            ...(operator || owner === citizenId ? { details, voiceTranscript } : {}),
             mine: owner === citizenId,
         })),
         alerts: current.map((a) => ({
