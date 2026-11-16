@@ -173,3 +173,12 @@ test('safety sharing code is private and invalidated by a new SOS', () => {
   const active = command(safe,'sos',{lat:40.374,lng:49.838,type:'fire'},'owner',NOW+1);
   assert.equal(active.safety.owner, undefined);
 });
+
+test('impact safe status count includes current records but does not reveal other safety codes', () => {
+  let s=command(fresh(),'safe',{},'one',NOW);
+  s=command(s,'safe',{},'two',NOW+1);
+  const view=publicState(s,'observer',NOW+2);
+  assert.equal(view.safetyCount,2);
+  assert.equal(view.mySafety,null);
+  assert.equal(JSON.stringify(view).includes(s.safety.one.shareCode),false);
+});
