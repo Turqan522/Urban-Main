@@ -1,0 +1,3 @@
+CRISIS_JWT_SECRET="replace-with-a-random-secret-of-at-least-32-characters"
+CRISIS_OPERATOR_PASSWORD="replace-with-a-strong-operator-password"
+CRISIS_ADMIN_PASSWORD="replace-with-a-strong-admin-password"

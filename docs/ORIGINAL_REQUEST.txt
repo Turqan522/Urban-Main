@@ -1,0 +1,26 @@
+Zəlzələ güclü sel sənaye qəzalari və ya kütləvi tədbirlər zamani şəhəron müxtəlif zonalarında yollarin bağlanmasi binalarin zədələnməsi və insanlar arasinda panika nəticəsi çıxış yollarinda tixaclar yaranır
+
+Movcud sistemlərdə vətəndaşlar ən yaxın təhlükəsiz toplanış məntəqəsinin nə qədər dolu olduğunu və ya hansi yolun bağlı olduğunu görə bilmir fövqəladə hallar dispetçerləri isə vətəndaşların gələn çoxsaylı SOS siqnallarını emal edərək xilasetmə briqadalarını ən kritik nöqtələrə operativ yönləndirməkdə çətinlik cəkirlərurban crisis & crowd evacuation engine mikro sisteminin islek prototipinin hazilamalidir sistem asagidaki iki esas moduldan ibaret olmalidir
+Modul 1 VVetendas Tehlukesizlik modulu (Api/Web APi)
+Vetendasin secdiyi rayon veya koordinat uzre en yaxin tehlukesizlik toplanis menteqelerini (Siginacaq/park/station) onlarin cari doluluq faizini ve tovsiye olunan texliye marsrutunu gostermek
+vetendaslara bir klikle sos siqnali gondermek (tehluke novu yangin/ daginti/su basmasi /tibbi yardim) ve tehlukesizem statusunu yenilemek imkani vermek
+sistem terefinden teqdim olunan xarici xerite ve marsrutlasdrima api si (veya simulyasiay olunmus yol newqliyyat endpointi) esasinda her hansi bir yol baglandiqda ve ya toplanis menteqsi 90% olduqda vetendasa avtomatik alternativ texliye marsurutu teklif etmek
+Modul 2 fovqelade hallar dispestr modulu & Analitika engine
+seher zonalari uzre daxil olan sos siqnallarini , toplanis menteqlqerinin doluluq seviyeyesini ve aktiv xilasetme briqadalarinin statusu canli panelde (dashboardda) eks etdirmek
+Kritik bohran noqtelerinin eger eyni zonadan (veya 500 metr radiusdan ) 5 deqiqe erzinde en az 5 ferqli sos siqnali daxil olarsa veya toplanis menteqesinin dolulugu 95% kecerse operator panelinden avtomatik olaraq (qrirmizi heyecan elave xilas etme briqadasi gonder ve yeni toplanis menteqesi ac) xeberdarligi yaratmaq ve qerarin icrasini bir klikle tesdiqlemek
+tehvil verilemli materiallarin siyahisi:
+islek proqram veya menbe kodu (source code)
+ise salinma telimati ve arxitektura qeydi (readme.md)
+ai istifade haqqinda beyanneme (ai declaration)- kodun yazilmasinda veya arxitekturasinda testlerde seciminde hansi ai aletlerinden nece ve hansi promptlarla istifade edildiyine dair beyanat
+texniki izah seneti (word/notepad)-layihenin strukturu mesgul olunan problem secilmis texnalogiyalar ve gelecek inkisaf imkanlarini ehate eden sened
+qiymetlendirme meyarlari
+esas funksionalligin duzgunluyu 30%
+elave texniki sertlere (Challenge drop) uygunlasma (her saatda bir dene verecekler 12de 13de 14de verecekler) 20%
+arxitektura ve kod keyfiyyeti 15%
+Test etibarliliq ve dayaniqliliq 15%
+ai aletlerinden nezaretli istifade 10%
+Demo komanda isi ve texniki mudafie 10%
+
+Sonrakı göstəriş: continue
+
+Qeyd: Sətirsonları və artıq boşluqlar oxunaqlılıq üçün normallaşdırılıb.

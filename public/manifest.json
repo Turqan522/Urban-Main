@@ -1,0 +1,11 @@
+{
+  "id": "/", "name": "Urban Crisis & Crowd Evacuation Engine", "short_name": "Urban Crisis",
+  "description": "Baku evacuation simulation · SOS, accessible routes and crisis coordination",
+  "lang": "az", "start_url": "/", "scope": "/", "display": "standalone",
+  "background_color": "#f6f7f8", "theme_color": "#1d2d33",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,108 @@
+export type Point = { lat: number; lng: number };
+export type Node = Point & { id: string; zone: string; label: string };
+export type Road = {
+  id: string;
+  a: string;
+  b: string;
+  name: string;
+  closed: boolean;
+  congestion: number;
+  accessible: boolean;
+};
+export type Shelter = {
+  id: string;
+  name: string;
+  kind: "park" | "shelter" | "station";
+  node: string;
+  capacity: number;
+  occupied: number;
+  open: boolean;
+  reserve: boolean;
+  accessible: boolean;
+  qrCode: string;
+  resources: ShelterResources;
+};
+export type ShelterResources = { waterLiters: number; waterMax: number; foodRations: number; foodMax: number; medicalKits: number; medicalMax: number; batteryPercent: number; lastSuppliedAt: number };
+export type VolunteerSkill = "first_aid" | "paramedic" | "fire_response" | "rescue";
+export type Volunteer = { id: string; citizenId: string; name: string; phone: string; skills: VolunteerSkill[]; verified: boolean; available: boolean; location: Point; activeTaskId?: string; status: "idle" | "assigned" | "en_route" | "on_scene" | "completed" };
+export type VolunteerTask = { id: string; sosId: string; volunteerId: string; status: "pending_acceptance" | "en_route" | "on_scene" | "completed"; assignedAt: number; acceptedAt?: number; arrivedAt?: number; completedAt?: number; routePath?: string[]; meters?: number };
+export type CrisisNews = { id: string; createdAt: number; zone: string; node: string; headline: string; headlineEn: string; content: string; contentEn: string; severity: "info" | "warning" | "danger"; targetRadiusMeters: number; incidentType: string; author: "Sistem Analitika" | "Baş Dispetçer"; sourceId: string };
+export type Sos = Point & {
+  id: string;
+  citizenId: string;
+  zone: string;
+  type: "fire" | "collapse" | "flood" | "medical";
+  priority: 0 | 1;
+  needsAccessible: boolean;
+  voiceTranscript?: string;
+  createdAt: number;
+  status: "active" | "safe" | "resolved";
+  assignedTeam?: string;
+};
+export type Team = {
+  id: string;
+  name: string;
+  specialty: string;
+  node: string;
+  status: "available" | "dispatched";
+  incidentId?: string;
+  targetNode?: string;
+  etaMinutes?: number;
+  routePath?: string[];
+  routeMeters?: number;
+  dispatchedAt?: number;
+  routeBlocked?: boolean;
+};
+export type Alert = {
+  id: string;
+  kind: "cluster" | "capacity" | "resource";
+  title: string;
+  detail: string;
+  zone: string;
+  node: string;
+  sosIds: string[];
+  shelterId?: string;
+  hasPriority?: boolean;
+};
+export type Audit = { id: string; at: number; action: string; detail: string; data?: { subject?: string; count?: number; occupied?: number; capacity?: number; target?: string; closed?: boolean; enabled?: boolean } };
+export type Config = {
+  windowSeconds: number;
+  sosThreshold: number;
+  radiusMeters: number;
+  routeLimit: number;
+  alertLimit: number;
+};
+export type State = {
+  safety: Record<string, { at: number; status: "safe"; shelterId?: string }>;
+  accessibleMode: Record<string, boolean>;
+  checkins: { citizenId: string; shelterId: string; at: number }[];
+  receipts: Record<string, number>;
+  nodes: Node[];
+  roads: Road[];
+  shelters: Shelter[];
+  sos: Sos[];
+  teams: Team[];
+  volunteers: Volunteer[];
+  volunteerTasks: VolunteerTask[];
+  news: CrisisNews[];
+  audit: Audit[];
+  decisions: {
+    alertId: string;
+    at: number;
+    teamId?: string;
+    shelterId?: string;
+    sosIds: string[];
+  }[];
+  config: Config;
+  revision: number;
+  updatedAt: number;
+  scenario: string;
+};
+export type Route = {
+  shelter: Shelter;
+  nodeIds: string[];
+  roadIds: string[];
+  meters: number;
+  minutes: number;
+  occupancy: number;
+};

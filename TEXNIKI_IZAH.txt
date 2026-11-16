@@ -1,0 +1,175 @@
+================================================================================
+URBAN CRISIS & CROWD EVACUATION ENGINE
+TEXNİKİ İZAH VƏ MEMARLIQ SƏNƏDİ (TECHNICAL SPECIFICATION)
+================================================================================
+Tarix: 15 Noyabr 2026
+Format: UTF-8 Mətn Sənədi (Notepad, Word və bütün mətn redaktorları ilə oxuna bilər)
+Dillər: Azərbaycan dili (əsas) / Texniki terminlər İngilis dilində
+Status: Tam funksional, test olunmuş mikro-sistem prototipi
+
+--------------------------------------------------------------------------------
+1. MƏŞĞUL OLUNAN PROBLEM (PROBLEM STATEMENT)
+--------------------------------------------------------------------------------
+Zəlzələ, yanğın, qəfil daşqın, partlayış və ya sıx izdihamlı kütləvi tədbirlər
+zamanı şəhər infrastrukturunda yollar qapanır, rabitə zəifləyir və panika yaranır.
+Nəticədə:
+1. Vətəndaşlar adətən fiziki olaraq ən yaxın bildikləri məntəqəyə qaçırlar, lakin
+   həmin məntəqə artıq tam dolu ola bilər və ya ora aparan yollar uçqun səbəbindən
+   bağlanmış ola bilər.
+2. Əlilliyi olan və ya hərəkət məhdudiyyətli şəxslər (əl arabası, uşaq arabası)
+   pilləkənli və qeyri-əlçatan yollarda çıxılmaz vəziyyətdə qalırlar.
+3. Fövqəladə hallar dispetçerləri eyni anda yüzlərlə və ya minlərlə daxil olan SOS
+   siqnalı selində (SOS flood / spam attack) çaşqınlıq yaşayır, ən kritik hadisə
+   ocaqlarını müəyyən etməkdə və məhdud xilasedici briqadaları səmərəli
+   yönləndirməkdə çətinlik çəkirlər.
+4. Mərkəzi serverlərə və ya mobil şəbəkəyə çıxış kəsildikdə vətəndaşın tətbiqi
+   tamamilə sıradan çıxır.
+
+"Urban Crisis & Crowd Evacuation Engine" bu problemləri həll etmək üçün həm
+vətəndaş, həm də dispetçer tərəfini vahid, dözümlü və ağıllı koordinasiya
+mühərriki ilə birləşdirir.
+
+--------------------------------------------------------------------------------
+2. SİSTEMİN STRUKTURU VƏ MEMARLIĞI (SYSTEM ARCHITECTURE)
+--------------------------------------------------------------------------------
+Sistem üçqat modul arxitekturası üzərində qurulmuşdur:
+
+[İstifadəçi Qatı (Client Layer)]
+  ├── Vətəndaş İnterfeysi (PWA, Offline Queue, Səsli/Tək-klik SOS, QR Check-in)
+  └── Dispetçer Paneli (Canlı Hadisə Lenti, Qraf Xəritəsi, Klaster İdarəsi, Audit)
+         │  (HTTPS / JSON REST API, 3 saniyəlik adaptiv polling)
+         ▼
+[Tətbiq və Təhlükəsizlik Qatı (Application & Security Layer)]
+  ├── TokenBucket & Spam Detector (3 pilləli SOS rate-limiting, DoS müdafiəsi)
+  ├── JWT & Rol Əsaslı Giriş Nəzarəti (RBAC: Operator və Admin rolları)
+  ├── Deterministik Böhran Mühərriki (Dijkstra, Haversine, Klaster analitikası)
+  ├── Circuit Breaker (Xarici marşrut xidmətlərində 503/timeout dözümlülüyü)
+  └── Çoxdilli Sistem (i18n: Azərbaycan və İngilis dili dəstəyi)
+         │  (Asinxron tranzaksiya / Compare-And-Swap dövrü)
+         ▼
+[Məlumat və Davamlılıq Qatı (Persistence Layer)]
+  ├── Cloudflare D1 (SQLite) — versiyalı aggregate vəziyyət saxlanması
+  └── localStorage / Service Worker Keşi — oflayn shell və sorğu buferi
+
+Qovluq Strukturu:
+- app/ui.tsx                : Vətəndaş və dispetçer rejimlərini birləşdirən əsas SPA
+- app/layout.tsx            : Şriftlər, PWA meta-məlumatları və qlobal stillər
+- app/api/[...path]/route.ts: Bütün REST endpointləri, avtorizasiya və rate-limit
+- lib/crisis/engine.ts      : Haversine, Dijkstra, əlçatan marşrut, klaster hesabı
+- lib/crisis/commands.ts    : 18+ biznes əməliyyatının validasiyası və mutasiyası
+- lib/crisis/store.ts       : Cloudflare D1 verilənlər bazası adapteri
+- lib/crisis/transaction.ts : Atomik Compare-And-Swap (CAS) 24 cəhdli dövr
+- lib/crisis/rate-limiter.ts: TokenBucket və 500-paralel SOS flood simulyatoru
+- lib/crisis/auth.ts        : JWT HS256 imzalama, yoxlama və RBAC hüquqları
+- lib/crisis/circuit-breaker.ts : 5s timeout və 30s cooldown ilə Circuit Breaker
+- lib/crisis/resources.ts   : Su, qida və tibbi ehtiyatların logistika monitorinqi
+- lib/crisis/volunteers.ts  : Yaxınlıqdakı təsdiqli könüllülərin koordinasiyası
+- lib/crisis/news.ts        : Hadisə və yol bağlanmalarına dair operativ geo-xəbərlər
+- lib/crisis/migrate.ts     : Köhnə JSON vəziyyətinin itkisiz miqrasiyası
+- lib/voice.ts              : Web Speech API ilə Azərbaycan/İngilis səslə SOS
+- lib/offline.ts            : Davamlı FIFO növbəsi (localStorage queue)
+- components/crisis-map.tsx : Şəhər qrafı, marşrut və briqada hərəkətinin xəritəsi
+- components/checkin-dialog.tsx : QR kod vasitəsilə sığınacaq qeydiyyatı
+- public/sw.js              : Service Worker oflayn keşləmə və shell idarəsi
+- tests/                    : 98 vahid testi və 500-SOS flood yük testi
+
+--------------------------------------------------------------------------------
+3. SEÇİLMİŞ TEXNOLOGİYALAR VƏ ƏSASLANDIRILMASI (TECHNOLOGY STACK)
+--------------------------------------------------------------------------------
+1. TypeScript 5.9.3:
+   - Fövqəladə hal sistemində səhvlərin (undefined dəyərlər, tip uyğunsuzluğu)
+     iş icrası zamanı yox, kompilyasiya mərhələsində qarşısını alır (`strict: true`).
+
+2. Next.js 16.3.4 & React 19.2.6:
+   - Reaktiv komponent arxitekturası sayəsində xəritə, hadisə axını və metrikalar
+     vahid server vəziyyətində dərhal yenilənir.
+
+3. Cloudflare D1 / SQLite & Drizzle ORM:
+   - Serverless kənar (edge) verilənlər bazası. Yüksək oxuma sürəti və yerli
+     inkişaf zamanı `.wrangler/state` daxilində SQLite dözümlülüyü təmin edir.
+
+4. Token Bucket Alqoritmi (Rate Limiting):
+   - Saxta bot və ya panika hücumlarında (500 SOS flood) sistemin çökməməsi üçün
+     3 pilləli Token Bucket tətbiq edilib (Sessiya: 3 SOS/dəq; IP: 10 SOS/dəq;
+     Qlobal: 200 SOS/dəq). Artıq sorğular 429 və ya 503 ilə dərhal rədd edilir.
+
+5. JWT (HS256) və Rol Əsaslı İdarəetmə (RBAC):
+   - Kritik dispetçer əməliyyatları (briqada göndərilməsi, ehtiyat sığınacaqların
+     açılması, yolların bağlanması) `operator` və ya `admin` hüquqları ilə
+     imzalanmış token tələb edir.
+
+6. Optimistik Kilidlənmə (Compare-And-Swap):
+   - Çoxsaylı vətəndaşlar eyni anda son sığınacaq yerinə check-in edərkən
+     yerlərin artıq dolmasının (overbooking) qarşısını almaq üçün atomik
+     reviziya yoxlaması aparılır.
+
+7. Web Speech API & PWA (Service Worker):
+   - Əllər məşğul olduqda və ya qaranlıqda səslə təcili yardım çağırma imkanı;
+     şəbəkə itdikdə isə PWA və `localStorage` vasitəsilə sorğuların növbələnməsi.
+
+--------------------------------------------------------------------------------
+4. ƏSAS FUNKSİONAL MODULLAR
+--------------------------------------------------------------------------------
+
+MODUL 1: VƏTƏNDAŞ TƏHLÜKƏSİZLİYİ VƏ EVAKUASİYA
+- Marşrutlaşdırma: Dijkstra alqoritmi ilə açıq və doluluğu <90% olan məntəqələrə
+  ən təhlükəsiz yol hesablanır. Sürət piyadalar üçün 75 m/dəq, əlçatan rejim üçün
+  50 m/dəq qəbul edilir.
+- Əlçatanlıq (♿): Pilləkənli yollar istisna edilir, yalnız lift və panduslu
+  sığınacaqlar tövsiyə edilir və SOS siqnalına "Prioritet 1" statusu verilir.
+- Səslə SOS: Web Speech API Azərbaycan və İngilis dillərində yanğın, dağıntı,
+  daşqın və tibbi açar sözləri tanıyaraq avtomatik siqnal göndərir.
+- Idempotent QR Check-in: Vətəndaş sığınacağa çatdıqda QR oxudur; doluluq bir
+  vahid artır və onun aktiv SOS siqnalı avtomatik "təhlükəsiz" olaraq bağlanır.
+  Təkrar oxutma saxta artıma səbəb olmur.
+- Oflayn Növbə: İnternet kəsildikdə sorğular itmir, yerli buferdə saxlanır və
+  şəbəkə bərpa olunduqda ardıcıl olaraq serverə ötürülür.
+
+MODUL 2: DİSPETÇER ANALİTİKASI VƏ RESURS İDARƏETMƏSİ
+- Klaster Alqoritmi: Son 300 saniyədə eyni zonada və ya 500 metr radiusda ən azı
+  5 fərqli vətəndaşdan daxil olan SOS qırmızı böhran xəbərdarlığı yaradır.
+- Kritik Doluluq: Məntəqə doluluğu >95% olduqda dispetçerə ehtiyat sığınacağı
+  açmaq təklif olunur.
+- Təsdiq və Briqada Göndərişi: Dispetçer təsdiq etdikdə ən yaxın əlçatan
+  briqada (yanğınsöndürən, təcili tibbi yardım, xilasedici) hadisə yerinə
+  yönləndirilir. Briqadanın təxmini çatma vaxtı (ETA: 300 m/dəq) hesablanır.
+- Resurs Logistikası: Hər sığınacaqda su, qida və tibbi dəst monitorinq olunur.
+  Su <20% və ya qida <10% olduqda dispetçer paneli təchizat karvanı təşkil edir.
+- Könüllülərin Koordinasiyası: Peşəkar briqadalar məşğul olduqda, hadisə yerinə
+  1 km məsafədə olan təsdiqlənmiş könüllülərə ilkin yardım tapşırığı yönləndirilir.
+
+--------------------------------------------------------------------------------
+5. TESTLƏR VƏ ETİBARLILIQ SÜBUTU (TESTING & VERIFICATION)
+--------------------------------------------------------------------------------
+Sistem üzrə 98 avtomatlaşdırılmış test yazılmışdır və 100% uğurla keçmişdir:
+- tests/engine.test.cjs    : Dijkstra, Haversine, 300s pəncərə, 500m radius limitləri
+- tests/extensions.test.cjs: Əlçatan marşrutlar, QR check-in, CAS yarış vəziyyətləri
+- tests/expansion.test.cjs : Sığınacaq resursları, könüllü axını, geo-xəbərlər
+- tests/security.test.cjs  : TokenBucket, JWT RBAC, spam filtrləri
+- tests/pwa.test.cjs       : Service worker, manifest, oflayn keş və FIFO növbəsi
+- tests/load-sos.mjs       : Eyni anda 500 saxta SOS sorğusunun sınağı (orta gecikmə
+                             <300 ms, dispetçer paneli bloklanmır).
+
+Kompilyasiya:
+- `npm run typecheck` (tsc --noEmit) : 0 xəta.
+- `npm run build`                    : 5/5 istehsal fazası uğurla tamamlanıb.
+
+--------------------------------------------------------------------------------
+6. GƏLƏCƏK İNKİŞAF İMKANLARI (FUTURE ROADMAP)
+--------------------------------------------------------------------------------
+1. Real GIS və Peyk İnteqrasiyası:
+   - OpenStreetMap / Google Maps real yol qrafı və peyk təsvirləri ilə küçə
+     səviyyəsində faktiki maneələrin (sel basmış alt keçidlər) inteqrasiyası.
+2. IoT Sensorlar və Ağıllı Şəhər Şəbəkəsi:
+   - Sığınacaqlarda quraşdırılmış real vaxt su səviyyəsi, tüstü və tutum
+     ölçən IoT sensorlarının MQTT/Websocket protokolu ilə birbaşa sistemə qoşulması.
+3. WebRTC Mesh Şəbəkəsi (Tam Rabitəsiz Evakuasiya):
+   - Mobil qüllələr və internet tam çökdüyü zaman vətəndaş telefonlarının
+     bir-biri ilə Bluetooth / Wi-Fi Direct vasitəsilə rabitə qurması və SOS
+     məlumatını zəncirvari şəkildə ən yaxın aktiv rabitə qovşağına çatdırması.
+4. Süni İntellektlə Kütlə Sıxlığı Təhlili (Computer Vision):
+   - Şəhər təhlükəsizlik kameralarından real vaxt rejimində izdiham sıxlığının
+     və təlatümün (stampede) erkən aşkarlanması və qabaqlayıcı marşrut dəyişikliyi.
+
+================================================================================
+Sənədin sonu.
