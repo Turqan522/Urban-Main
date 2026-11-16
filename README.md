@@ -1,5 +1,13 @@
 # Urban Crisis & Crowd Evacuation Engine
 
+## Canlı sayt
+
+**[Proqramı aç — Urban Main](https://urban-main.turqan522.workers.dev)**
+
+Bu ünvan hamıya açıqdır. GitHub mənbə kodunu saxlayır; tətbiq və D1 bazası Cloudflare-da işləyir. Canlı operator/admin parolları yerli demo parollarından fərqlidir və GitHub-da saxlanmır.
+
+Cloudflare hesabına `npx wrangler login` ilə daxil olduqdan sonra yeniləmələri `npm run deploy:cloudflare` ilə yayımlayın. Bu əmr build edir, baza miqrasiyalarını tətbiq edir və serveri yeniləyir. İlk yayımlamada secret-lər ayrıca təyin olunub; növbəti yayımlamalar onları saxlayır. Konfiqurasiya: `wrangler.production.json`.
+
 Windows-da asan başlatma: `start-local.cmd` faylını iki dəfə klikləyin. Paketlər yoxdursa quraşdırılır, build və yerli baza hazırlanır, sonra `http://127.0.0.1:4173` açmağa hazır olur. Server pəncərəsini açıq saxlayın. PowerShell `npm.ps1` xətası verərsə, aşağıdakı əmrlərdə `npm` əvəzinə `npm.cmd` istifadə edin.
 
 AZ / EN dillərində vətəndaş təhlükəsizliyi və fövqəladə hallar dispetçer prototipi. [Master plan](docs/MASTER_PLAN.md), [əlavə innovasiya planı](docs/ADDITIONAL_PLAN.md), [SOS müdafiə planı](docs/SECURITY_PLAN.md) və [tətbiq xəritəsi](docs/IMPLEMENTATION.md).
