@@ -12,7 +12,7 @@
 
 ## Əlavə modulların demosu
 
-1. Demo Lab → **503 xəta sınağı**: sarı ehtiyat marşrut banneri və daxili qraf yolu görünür. 30 saniyədən sonra yarıaçıq yoxlama ilə normal marşrut bərpa olur. `timeout` düyməsi 5 saniyəlik gecikməni ayrıca göstərir.
+1. Demo Lab → **503 xəta sınağı**: daxili qraf üzrə ehtiyat marşrut hesablanır. 30 saniyədən sonra yarıaçıq yoxlama ilə normal marşrut bərpa olur. `timeout` düyməsi 5 saniyəlik gecikməni ayrıca göstərir.
 2. Demo Lab → **Su ehtiyatını azalt**: Mərkəzi Parkın suyu 12%-ə düşür, narıncı xəbərdarlıq yaranır və məntəqə marşrutlardan çıxır. Dispetçer “Təchizat karvanı göndər” basanda bütün ehtiyatlar 100% olur.
 3. Demo Lab → **Briqadalar məşğul · tibbi SOS**: bu ssenari əvvəlki demonu sıfırlayır. Vətəndaş rejimində tibbi SOS yaxınlığında könüllü qeydiyyatı edin; dispetçerdə təsdiqləyin; vətəndaş “Mən hazıram” seçsin. Dispetçer tövsiyə olunan könüllünü səfərbər etsin. Vətəndaş dəvəti qəbul edib “yolda” → “hadisə yerində” → “tamamlandı” addımlarını keçsin. Tibbi SOS aktiv qalır.
 4. Demo Lab → **Marşrutu bağla** və ya klasteri təsdiqlə: `GET /api/news` və ekrandakı yerli xəbərlər panelində həmin əraziyə aid xəbər görünür.
