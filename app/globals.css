@@ -2641,3 +2641,6 @@ td {
   border-color: #fcd34d;
   color: #92400e;
 }
+
+/* Emergency actions and clear simulated status */
+.quick-actions{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 18px}.quick-actions .btn{min-height:54px;flex:1 1 210px;font-size:15px;font-weight:700}.citizen-metrics{margin-top:16px}.danger-types button.selected-hazard{border:2px solid #b9402e;background:#fff0eb;color:#842a1e;font-weight:700}.danger-types button{min-height:44px}.sos-status{margin:0 0 18px;border-left:4px solid #d65a43}.sos-status h2{margin-bottom:8px}.sos-status strong{color:#82301f}.sos-status p{margin:8px 0}.news-context{display:block;margin-top:8px;color:#485d64;font-weight:600}.alternative small{display:block}.citizen-controls label,.citizen-controls small{color:#455962}.demo-panel p{line-height:1.55}
