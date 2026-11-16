@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+const base=process.argv[2] || 'http://127.0.0.1:4173';
+if (!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(base)) throw new Error('Local demo server only');
+const first=await fetch(base+'/api/state'); const cookie=first.headers.get('set-cookie')?.split(';')[0]; assert.ok(cookie);
+const other=await fetch(base+'/api/state'); const otherCookie=other.headers.get('set-cookie')?.split(';')[0]; assert.ok(otherCookie);
+const post=async(path,body,c=cookie,token='')=>{const r=await fetch(base+'/api/'+path,{method:'POST',headers:{'Content-Type':'application/json',Cookie:c,...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify(body)});assert.ok(r.ok,`${path}: ${r.status}`);return r.json();};
+const sent=await post('sos',{lat:40.374,lng:49.838,type:'fire',details:{people:3,injured:true,setting:'indoors',note:'demo test'}});assert.equal(sent.sos.find(x=>x.mine).details.people,3);
+const otherState=await (await fetch(base+'/api/state',{headers:{Cookie:otherCookie}})).json();assert.equal(otherState.sos.find(x=>x.id===sent.sos.find(s=>s.mine).id).details,undefined);
+const login=await post('auth/login',{username:'operator',password:'crisis2026'});const operator=await (await fetch(base+'/api/state',{headers:{Cookie:otherCookie,Authorization:`Bearer ${login.token}`}})).json();assert.equal(operator.sos.find(x=>x.id===sent.sos.find(s=>s.mine).id).details.note,'demo test');
+const safe=await post('safe',{});const code=safe.mySafety.shareCode;assert.match(code,/^[a-f0-9]{32}$/);assert.equal((await post('safety-lookup',{code},otherCookie)).status,'safe');
+await post('sos',{lat:40.374,lng:49.838,type:'fire'});assert.equal((await post('safety-lookup',{code},otherCookie)).status,'unknown');
+console.log('PASS optional SOS details, role privacy, safety code and invalidation');
