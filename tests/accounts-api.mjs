@@ -18,5 +18,7 @@ r=await post('auth/login',{username:'admin',password:'admin2026'});assert.equal(
 r=await fetch(`${base}/api/operator/requests`,{headers:{Authorization:`Bearer ${admin}`}});assert.equal(r.status,200);const requests=(await r.json()).requests;const own=requests.find(x=>x.username===username);assert.ok(own);
 r=await post('operator/approve',{id:own.id},'',admin);assert.equal(r.status,200);
 r=await post('auth/login',{username,password});assert.equal(r.status,200);const approved=await r.json();assert.equal(approved.role,'operator');
+r=await post('operator/approve',{id:own.id},'',approved.token);assert.equal(r.status,403);
+r=await post('road',{id:firstState.roads[0].id,closed:true},'',approved.token);assert.equal(r.status,200);
 r=await post('account/logout',{},loginCookie);assert.equal(r.status,200);assert.match(r.headers.getSetCookie().find(x=>x.startsWith('crisis_account=')),/Max-Age=0/);
 console.log('PASS signup, duplicate, password, session, administrator approval and operator sign-in');
