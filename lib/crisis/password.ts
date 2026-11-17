@@ -1,7 +1,13 @@
 const encoder = new TextEncoder();
 const ITERATIONS = 210000;
+export function validEmail(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const email = value.trim();
+  return email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
 export function validCredentials(username: unknown, password: unknown): username is string {
-  return typeof username === 'string' && /^[a-zA-Z0-9_]{3,32}$/.test(username) && typeof password === 'string' && password.length >= 10 && password.length <= 128 && encoder.encode(password).length <= 256;
+  const legacy = typeof username === "string" && /^[a-zA-Z0-9_]{3,32}$/.test(username.trim());
+  return (legacy || validEmail(username)) && typeof password === "string" && password.length > 0 && encoder.encode(password).length <= 1024;
 }
 export async function derivePassword(password: string, salt: Uint8Array): Promise<string> {
   const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
