@@ -154,6 +154,8 @@ export function publicState(s: State, citizenId: string, now = Date.now(), opera
     const { safety, accessibleMode, checkins, receipts: _receipts, volunteers, ...visible } = s;
     return {
         ...visible,
+        audit: operator ? visible.audit : [],
+        decisions: operator ? visible.decisions : [],
         sessionId: citizenId,
         mySafety: safety[citizenId] ?? null,
         safetyCount: Object.keys(safety).length,
