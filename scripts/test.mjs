@@ -31,6 +31,7 @@ const compile = spawnSync(
     "lib/crisis/rate-limiter.ts",
     "lib/crisis/spam-detector.ts",
     "lib/crisis/auth.ts",
+    "lib/crisis/password.ts",
     "lib/crisis/resources.ts",
     "lib/crisis/volunteers.ts",
     "lib/crisis/news.ts",
