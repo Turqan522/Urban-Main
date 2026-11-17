@@ -78,6 +78,7 @@ test("citizen account passwords are salted and verification rejects wrong passwo
   assert.equal(validCredentials("person@gmail.com","1"),true);
   assert.equal(validCredentials("person@gmail.com",""),false);
   const first=await makePassword("strong-password"), second=await makePassword("strong-password");
+  assert.match(first.hash,/^pbkdf2-sha256-100000\$[a-f0-9]{64}$/);
   assert.notEqual(first.salt,second.salt);
   assert.notEqual(first.hash,second.hash);
   assert.equal(await verifyPassword("strong-password",first.salt,first.hash),true);
@@ -89,4 +90,26 @@ test("citizen token cannot authorize dispatcher operations",async()=>{
   const result=await authorize("road",`Bearer ${token}`,secret);
   assert.equal(result.ok,false);
   assert.equal(result.status,403);
+});
+
+
+test("legacy password hashes are verified with their original iteration count", async () => {
+  const {derivePassword,verifyPassword} = require("../outputs/test-build/crisis/password.js");
+  const salt=Uint8Array.from(Buffer.from("00112233445566778899aabbccddeeff","hex"));
+  const hash=await derivePassword("old-password",salt,210000);
+  assert.equal(await verifyPassword("old-password",Buffer.from(salt).toString("hex"),hash),true);
+  assert.equal(await verifyPassword("wrong-password",Buffer.from(salt).toString("hex"),hash),false);
+  assert.equal(await verifyPassword("old-password",Buffer.from(salt).toString("hex"),"unknown$"+hash),false);
+});
+
+
+test("new password records work when runtime enforces Cloudflare PBKDF2 limit", async () => {
+  const {makePassword,verifyPassword,derivePassword,LegacyPasswordUnsupported} = require("../outputs/test-build/crisis/password.js");
+  const actual=crypto.subtle;
+  const limited={importKey:actual.importKey.bind(actual),deriveBits:async (params,key,length)=>{if(params.iterations>100000) throw new DOMException("limit", "NotSupportedError");return actual.deriveBits(params,key,length);}};
+  const fresh=await makePassword("demo-password",limited);
+  assert.equal(await verifyPassword("demo-password",fresh.salt,fresh.hash,limited),true);
+  const bytes=Uint8Array.from(Buffer.from(fresh.salt,"hex"));
+  const legacy=await derivePassword("old-password",bytes,210000);
+  await assert.rejects(verifyPassword("old-password",fresh.salt,legacy,limited),LegacyPasswordUnsupported);
 });
