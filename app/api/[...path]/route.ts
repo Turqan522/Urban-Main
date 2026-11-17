@@ -4,12 +4,14 @@ import { publicState, routes } from "../../../lib/crisis/engine";
 import { AppError, coordinates } from "../../../lib/crisis/commands";
 import { newsForPoint } from "../../../lib/crisis/news";
 import { routingCircuit } from "../../../lib/crisis/circuit-breaker";
-import { authorize, login, verifyToken } from "../../../lib/crisis/auth";
+import { makePassword, validCredentials, verifyPassword } from "../../../lib/crisis/password";
+import { authorize, login, verifyToken, signToken } from "../../../lib/crisis/auth";
 import { loginLimiter, simulateFlood, sosRateGuard } from "../../../lib/crisis/rate-limiter";
 import { spamDetector } from "../../../lib/crisis/spam-detector";
 import { env } from "cloudflare:workers";
 export const dynamic = "force-dynamic";
 const setting = (name: string) => { const value = (env as unknown as Record<string, unknown>)[name]; return typeof value === "string" ? value : ""; };
+function accountDB() { if (!env.DB) throw new AppError("Hesab bazası hazır deyil.",503); return env.DB; }
 async function handle(request: Request) {
   const url = new URL(request.url),
     path = url.pathname.replace("/api/", "");
@@ -20,34 +22,41 @@ async function handle(request: Request) {
     ?.match(/(?:^|;\s*)crisis_citizen=([a-f0-9-]{36})(?:;|$)/)?.[1];
   const fresh = !citizen;
   citizen ??= crypto.randomUUID();
-  const json = (value: unknown, status = 200, extraHeaders: Record<string,string> = {}) =>
-    new Response(JSON.stringify(value), {
-      status,
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        "Cache-Control": "no-store",
-        "X-Content-Type-Options": "nosniff",
-        ...extraHeaders,
-        ...(fresh
-          ? {
-              "Set-Cookie": `crisis_citizen=${citizen}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400${url.protocol === "https:" ? "; Secure" : ""}`,
-            }
-          : {}),
-      },
-    });
+  const anonymousCitizen = citizen;
+  const sessionToken = request.headers.get("cookie")?.match(/(?:^|;\s*)crisis_account=([A-Za-z0-9_.-]+)(?:;|$)/)?.[1];
+  const account = sessionToken ? await verifyToken(sessionToken, setting("CRISIS_JWT_SECRET")) : null;
+  if (account?.role === "citizen" && /^[a-f0-9-]{36}$/.test(account.sub)) citizen = `account:${account.sub}`;
+  const json = (value: unknown, status = 200, extraHeaders: Record<string,string> = {}) => {
+    const headers = new Headers({"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"});
+    for (const [key,value] of Object.entries(extraHeaders)) headers.append(key,value);
+    if (fresh) headers.append("Set-Cookie", `crisis_citizen=${anonymousCitizen}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400${url.protocol === "https:" ? "; Secure" : ""}`);
+    return new Response(JSON.stringify(value), {status,headers});
+  };
+  const accountCookie = (token: string, maxAge = 28800) => `crisis_account=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${url.protocol === "https:" ? "; Secure" : ""}`;
   let sosSlot = false;
   try {
     if (request.method === "GET") {
       if (path === "health")
         return json({ ok: true, mode: "simulation", persistence: "D1", routingCircuit: routingCircuit.status, rateScope: "instance", highSosFlow: sosRateGuard.overloadedUntil > Date.now() });
+      if (path === "account/me") {
+        if (account?.role !== "citizen") return json({username:null});
+        const row = await accountDB().prepare("SELECT operator_status FROM citizen_accounts WHERE id = ?").bind(account.sub).first<{operator_status:string}>();
+        return json({username:account.name,operatorStatus:row?.operator_status ?? "pending"});
+      }
+      if (path === "operator/requests") {
+        const bearer=request.headers.get("authorization"), user=bearer?.startsWith("Bearer ") ? await verifyToken(bearer.slice(7),setting("CRISIS_JWT_SECRET")) : null;
+        if (user?.role !== "admin") return json({error:"Administrator girişi tələb olunur."},403);
+        const result=await accountDB().prepare("SELECT id,username,created_at FROM citizen_accounts WHERE operator_status = 'pending' ORDER BY created_at ASC LIMIT 100").all();
+        return json({requests:result.results});
+      }
       if (path === "auth/me") {
         const bearer = request.headers.get("authorization");
         const secret = setting("CRISIS_JWT_SECRET");
         const user = bearer?.startsWith("Bearer ") ? await verifyToken(bearer.slice(7), secret) : null;
-        return user ? json({ role: user.role, name: user.name, expiresAt: user.exp * 1000 }) : json({ error: "Giriş tələb olunur." }, 401);
+        return user && user.role !== "citizen" ? json({ role: user.role, name: user.name, expiresAt: user.exp * 1000 }) : json({ error: "Giriş tələb olunur." }, 401);
       }
       const state = await cachedState();
-      if (path === "state") { const bearer = request.headers.get("authorization"); const operator = bearer?.startsWith("Bearer ") ? !!(await verifyToken(bearer.slice(7), setting("CRISIS_JWT_SECRET"))) : false; return json({ ...publicState(state, citizen, Date.now(), operator), security: { highSosFlow: sosRateGuard.overloadedUntil > Date.now(), rateScope: "instance" } }); }
+      if (path === "state") { const bearer = request.headers.get("authorization"); const operator = bearer?.startsWith("Bearer ") ? (["operator", "admin"].includes((await verifyToken(bearer.slice(7), setting("CRISIS_JWT_SECRET")))?.role ?? "")) : false; return json({ ...publicState(state, citizen, Date.now(), operator), security: { highSosFlow: sosRateGuard.overloadedUntil > Date.now(), rateScope: "instance" } }); }
       if (path === "routes") {
         const p = coordinates({
           lat: Number(url.searchParams.get("lat")),
@@ -101,6 +110,37 @@ async function handle(request: Request) {
       const found = Object.values(state.safety).some(record => record.shareCode === code && Date.now() - record.at < 24 * 3600000);
       return json({ status: found ? "safe" : "unknown" });
     }
+    if (path === "account/logout") return json({ ok: true }, 200, {"Set-Cookie": accountCookie("", 0)});
+    if (path === "account/register" || path === "account/login") {
+      const limitKey = `account:${ip || anonymousCitizen}`;
+      if (!loginLimiter.take(limitKey)) return json({ error: "Çox sayda cəhd. Bir az gözləyin." }, 429);
+      const secret = setting("CRISIS_JWT_SECRET");
+      if (secret.length < 32 || !env.DB) return json({error:"Hesab sistemi hazır deyil."},503);
+      if (!validCredentials(body.username, body.password)) return json({error:"İstifadəçi adı 3–32 latın hərfi, rəqəm və ya alt xətdən, şifrə isə 10–128 simvoldan ibarət olmalıdır."},400);
+      const username = body.username.toLowerCase(), password = body.password as string;
+      let id: string;
+      if (path === "account/register") {
+        if (["operator","admin"].includes(username)) return json({error:"Bu istifadəçi adı seçilə bilməz."},400);
+        const exists = await accountDB().prepare("SELECT id FROM citizen_accounts WHERE username = ?").bind(username).first();
+        if (exists) return json({error:"Bu istifadəçi adı artıq istifadə olunur."},409);
+        const hashed = await makePassword(password); id = crypto.randomUUID();
+        try { await accountDB().prepare("INSERT INTO citizen_accounts (id,username,password_hash,password_salt,created_at) VALUES (?,?,?,?,?)").bind(id,username,hashed.hash,hashed.salt,Date.now()).run(); }
+        catch (err) { if (String(err).includes("UNIQUE")) return json({error:"Bu istifadəçi adı artıq istifadə olunur."},409); throw err; }
+      } else {
+        const user = await accountDB().prepare("SELECT id,password_hash,password_salt FROM citizen_accounts WHERE username = ?").bind(username).first<{id:string;password_hash:string;password_salt:string}>();
+        if (!user || !(await verifyPassword(password,user.password_salt,user.password_hash))) return json({error:"İstifadəçi adı və ya şifrə yanlışdır."},401);
+        id = user.id;
+      }
+      const token = await signToken(id,"citizen",username,secret);
+      return json({username,role:"citizen"},200,{"Set-Cookie":accountCookie(token)});
+    }
+    if (path === "operator/approve") {
+      const bearer=request.headers.get("authorization"), user=bearer?.startsWith("Bearer ") ? await verifyToken(bearer.slice(7),setting("CRISIS_JWT_SECRET")) : null;
+      if (user?.role !== "admin") return json({error:"Administrator girişi tələb olunur."},403);
+      if (typeof body.id !== "string" || !/^[a-f0-9-]{36}$/.test(body.id)) return json({error:"Hesab düzgün deyil."},400);
+      const updated=await accountDB().prepare("UPDATE citizen_accounts SET operator_status = 'approved' WHERE id = ? AND operator_status = 'pending'").bind(body.id).run();
+      return updated.meta.changes ? json({ok:true}) : json({error:"Müraciət tapılmadı."},404);
+    }
     if (path === "auth/login") {
       const key = ip || citizen;
       if (!loginLimiter.take(key)) return json({ error: "Çox sayda giriş cəhdi. Bir az gözləyin.", code: "RATE_LOGIN" }, 429, { "Retry-After": String(loginLimiter.retryAfter(key)) });
@@ -109,7 +149,15 @@ async function handle(request: Request) {
       const adminPassword = setting("CRISIS_ADMIN_PASSWORD");
       if (secret.length < 32 || !operatorPassword || !adminPassword) { console.error("Auth configuration missing", { secretLength: secret.length, operatorPresent: !!operatorPassword, adminPresent: !!adminPassword }); return json({ error: "Operator girişi konfiqurasiya edilməyib." }, 503); }
       const result = await login(body.username, body.password, { secret, operatorPassword, adminPassword });
-      return result ? json(result) : json({ error: "İstifadəçi adı və ya parol yanlışdır." }, 401);
+      if (result) return json(result);
+      if (validCredentials(body.username,body.password)) {
+        const name=body.username.toLowerCase();
+        const user=await accountDB().prepare("SELECT id,password_hash,password_salt FROM citizen_accounts WHERE username = ? AND operator_status = 'approved'").bind(name).first<{id:string;password_hash:string;password_salt:string}>();
+        if (user && await verifyPassword(body.password as string,user.password_salt,user.password_hash)) {
+          const token=await signToken(user.id,"operator",name,secret); return json({token,role:"operator",expiresAt:Date.now()+8*3600_000});
+        }
+      }
+      return json({ error: "İstifadəçi adı, şifrə və ya operator təsdiqi düzgün deyil." }, 401);
     }
     const allowed = [
       "sos",
