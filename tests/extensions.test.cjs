@@ -182,3 +182,16 @@ test('impact safe status count includes current records but does not reveal othe
   assert.equal(view.mySafety,null);
   assert.equal(JSON.stringify(view).includes(s.safety.one.shareCode),false);
 });
+
+
+test("live GPS requires a fresh accurate fix near the demo network", () => {
+  const { locationStatus } = require("../outputs/test-build/crisis/live-location.js");
+  const nodes = [{lat:40.374,lng:49.838}], time = 1800000000000;
+  assert.equal(locationStatus(null,nodes,time),"waiting");
+  const fix = {lat:40.374,lng:49.838,accuracy:20,timestamp:time};
+  assert.equal(locationStatus(fix,nodes,time),"ready");
+  assert.equal(locationStatus({...fix,timestamp:time-45001},nodes,time),"stale");
+  assert.equal(locationStatus({...fix,accuracy:151},nodes,time),"inaccurate");
+  assert.equal(locationStatus({...fix,lat:40.45},nodes,time),"outside");
+  assert.equal(locationStatus({...fix,lat:NaN},nodes,time),"stale");
+});
