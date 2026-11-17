@@ -195,3 +195,13 @@ test("live GPS requires a fresh accurate fix near the demo network", () => {
   assert.equal(locationStatus({...fix,lat:40.45},nodes,time),"outside");
   assert.equal(locationStatus({...fix,lat:NaN},nodes,time),"stale");
 });
+
+
+test("citizen state hides operator audit and decision records", () => {
+  const base=fresh(); base.audit.push({id:"a",at:NOW,action:"SIMULATION",detail:"operator record"});
+  base.decisions.push({alertId:"a",at:NOW,sosIds:[]});
+  assert.equal(publicState(base,"citizen",NOW).audit.length,0);
+  assert.equal(publicState(base,"citizen",NOW).decisions.length,0);
+  assert.ok(publicState(base,"operator",NOW,true).audit.some(entry => entry.id === "a"));
+  assert.equal(publicState(base,"operator",NOW,true).decisions.length,1);
+});
