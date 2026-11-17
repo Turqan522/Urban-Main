@@ -164,7 +164,7 @@ Bu HTTP testləri demo vəziyyətini əvvəl və sonra sıfırlayır; paralel SO
 
 ### Vətəndaş hesabı
 
-Vətəndaş modulunda istifadəçi adı və şəxsi şifrə ilə hesab yaratmaq və daxil olmaq mümkündür. Yeni hesab operator təsdiqini gözləyir. Administrator dispetçer panelində müraciəti təsdiqlədikdən sonra istifadəçi dispetçer panelinə öz adı və şifrəsi ilə daxil ola bilər. Şifrələr düz mətn kimi saxlanmır. Demo versiyada şifrə bərpası və e-poçt təsdiqi yoxdur; real istifadəyə verilməzdən əvvəl ayrıca təhlükəsizlik baxışı və hesab bərpası tələb olunur. Hesaba keçərkən köhnə anonim sessiyada qalmış növbə sorğuları avtomatik başqa hesaba daşınmır.
+Vətəndaş modulunda Gmail və ya digər e-poçt ünvanı və şəxsi şifrə ilə hesab yaratmaq və daxil olmaq mümkündür. Yeni hesab operator təsdiqini gözləyir. Administrator dispetçer panelində müraciəti təsdiqlədikdən sonra istifadəçi dispetçer panelinə öz adı və şifrəsi ilə daxil ola bilər. Şifrələr düz mətn kimi saxlanmır. Demo versiyada şifrə bərpası və e-poçt təsdiqi yoxdur; hesaba təsdiq kodu göndərilmir; real istifadəyə verilməzdən əvvəl ayrıca təhlükəsizlik baxışı və hesab bərpası tələb olunur. Hesaba keçərkən köhnə anonim sessiyada qalmış növbə sorğuları avtomatik başqa hesaba daşınmır.
 
 ### Panelə giriş
 
