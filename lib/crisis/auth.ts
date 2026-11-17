@@ -34,7 +34,7 @@ export async function verifyToken(token: string, secret: string, now = Date.now(
     if (!valid) return null;
     const data = parse(parts[1]);
     const time = Math.floor(now / 1000);
-    if (typeof data.sub !== "string" || typeof data.name !== "string" || !["operator", "admin"].includes(String(data.role)) || typeof data.iat !== "number" || typeof data.exp !== "number" || data.iat > time + 60 || data.exp <= time || data.exp - data.iat > 8 * 3600) return null;
+    if (typeof data.sub !== "string" || typeof data.name !== "string" || !["citizen", "operator", "admin"].includes(String(data.role)) || typeof data.iat !== "number" || typeof data.exp !== "number" || data.iat > time + 60 || data.exp <= time || data.exp - data.iat > 8 * 3600) return null;
     return data as JwtPayload;
   } catch { return null; }
 }
