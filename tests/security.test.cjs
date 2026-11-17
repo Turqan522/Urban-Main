@@ -73,7 +73,10 @@ test("500-request limiter simulation is bounded and does not write SOS",()=>{
 test("citizen account passwords are salted and verification rejects wrong passwords", async () => {
   const {makePassword,verifyPassword,validCredentials} = require("../outputs/test-build/crisis/password.js");
   assert.equal(validCredentials("student_1","strong-password"),true);
+  assert.equal(validCredentials("student_1","x"),true);
   assert.equal(validCredentials("a","short"),false);
+  assert.equal(validCredentials("person@gmail.com","1"),true);
+  assert.equal(validCredentials("person@gmail.com",""),false);
   const first=await makePassword("strong-password"), second=await makePassword("strong-password");
   assert.notEqual(first.salt,second.salt);
   assert.notEqual(first.hash,second.hash);
