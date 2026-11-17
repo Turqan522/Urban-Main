@@ -17,6 +17,7 @@ import CheckinDialog from "../components/checkin-dialog";
 import VolunteerPanel from "./ui-volunteers";
 import NewsFeed from "./ui-news";
 import ResourcePanel from "./ui-resources";
+import OperatorRequests from "./operator-requests";
 type View = ReturnType<typeof publicState> & {
     alreadyCheckedIn?: boolean;
     security?: { highSosFlow: boolean; rateScope: string };
@@ -55,6 +56,13 @@ export default function CrisisApp() {
     const [soundPulse, setSoundPulse] = useState(false);
     const [journeyId, setJourneyId] = useState<string | null>(null);
     const [shareStatus, setShareStatus] = useState("");
+    const [operatorStatus, setOperatorStatus] = useState("");
+    const [accountName, setAccountName] = useState<string | null>(null);
+    const [accountMode, setAccountMode] = useState<"login" | "register">("login");
+    const [accountUsername, setAccountUsername] = useState("");
+    const [accountPassword, setAccountPassword] = useState("");
+    const [accountError, setAccountError] = useState("");
+    const [accountBusy, setAccountBusy] = useState(false);
     const [tracking, setTracking] = useState(false);
     const [gpsFix, setGpsFix] = useState<LocationFix | null>(null);
     const [gpsProblem, setGpsProblem] = useState("");
@@ -168,6 +176,7 @@ export default function CrisisApp() {
         catch {
             setError("storageError");
         }
+        void fetch("/api/account/me", {cache:"no-store"}).then(async response => response.ok ? response.json() as Promise<{username:string | null;operatorStatus?:string}> : null).then(data => { if (mounted.current) { setAccountName(data?.username ?? null); setOperatorStatus(data?.operatorStatus ?? ""); } }).catch(()=>{});
         let stopped = false, polling = false;
         const poll = async () => {
             if (polling || stopped)
@@ -290,6 +299,24 @@ export default function CrisisApp() {
             setBusy(false);
         }
     }
+    async function accountSubmit(event: React.FormEvent) {
+        event.preventDefault(); if (accountBusy) return;
+        setAccountBusy(true); setAccountError("");
+        try {
+            const response = await fetch(`/api/account/${accountMode}`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({username:accountUsername,password:accountPassword})});
+            const data = await response.json() as {username?:string;error?:string};
+            if (!response.ok) throw new Error(data.error || "Hesab əməliyyatı alınmadı.");
+            setAccountName(data.username ?? null); setOperatorStatus(accountMode === "register" ? "pending" : ""); setAccountPassword("");
+            const me=await fetch("/api/account/me",{cache:"no-store"}); if(me.ok){const profile=await me.json() as {operatorStatus?:string};setOperatorStatus(profile.operatorStatus ?? "");}
+            try { apply(await request("state")); } catch { setError("networkError"); }
+        } catch (error) { setAccountError(error instanceof Error ? error.message : "Hesab əməliyyatı alınmadı."); }
+        finally { setAccountBusy(false); }
+    }
+    async function accountLogout() {
+        setAccountBusy(true); setAccountError("");
+        try {const response=await fetch("/api/account/logout",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});if(!response.ok)throw new Error("Çıxış alınmadı.");setAccountName(null);setOperatorStatus("");apply(await request("state"));}
+        catch {setAccountError("Çıxış alınmadı. Bağlantını yoxlayın.");} finally {setAccountBusy(false);}
+    }
     async function loginOperator(event: React.FormEvent) {
         event.preventDefault();
         setError("");
@@ -399,7 +426,9 @@ export default function CrisisApp() {
     <main><header className="topbar"><div className="crumb"><span>Urban Crisis</span><ChevronRight size={14}/><strong>{t(mode === "citizen" ? "citizen" : tab)}</strong></div><div className="top-actions"><span className={`connection ${online ? "" : "offline"}`}><i />{t(online ? "online" : "offline")}</span><button className="btn light small" onClick={() => setLang(lang === "az" ? "en" : "az")} aria-label="AZ / EN">{lang.toUpperCase()} / {lang === "az" ? "EN" : "AZ"}</button></div></header>
       <div className="content"><div className="page-heading"><div><div className="eyebrow"><span className="orange-line"/>{t("platform")}</div><h1>{t(mode === "citizen" ? "citizenHeadline" : "headline")}</h1><p>{t(mode === "citizen" ? "citizenIntro" : "intro")}</p></div><button className="btn dark" onClick={() => setDemo(!demo)}><Play size={15}/>{t("demo")}</button></div>
         <div className="toolbar"><div className="mode-tabs"><button className={mode === "dispatch" ? "selected" : ""} onClick={() => setMode("dispatch")}><LayoutDashboard size={15}/>{t("dispatch")}</button><button className={mode === "citizen" ? "selected" : ""} onClick={() => { setMode("citizen"); setTab("overview"); }}><ShieldCheck size={15}/>{t("citizen")}</button></div><span className="simulation"><span />{t("simulation")}</span></div>
+        {mode === "citizen" && <section className="panel account-panel"><div className="account-header"><div><span className="tag green">{lang === "az" ? "VƏTƏNDAŞ HESABI" : "CITIZEN ACCOUNT"}</span><h2>{accountName ? (lang === "az" ? `Salam, ${accountName}` : `Hello, ${accountName}`) : (lang === "az" ? "Şəxsi hesab" : "Personal account")}</h2></div>{accountName && <button className="btn light small" disabled={accountBusy} onClick={accountLogout}>{t("logout")}</button>}</div>{accountName ? <p>{operatorStatus === "approved" ? (lang === "az" ? "Operator müraciətiniz təsdiqlənib. Dispetçer panelində öz istifadəçi adınız və şifrənizlə daxil olun." : "Your operator request is approved. Sign in to the dispatcher panel with your own credentials.") : (lang === "az" ? "Hesab yaradıldı. Operator səlahiyyəti üçün administrator təsdiqi gözlənilir." : "Your account is ready. Administrator approval is required for operator access.")}</p> : <><p>{lang === "az" ? "İstifadəçi adı və şifrə ilə qeydiyyatdan keçin. Operator olmaq üçün administratorun təsdiqi tələb olunur." : "Create an account or sign in. Dispatcher privileges are separate."}</p><div className="mode-tabs"><button type="button" className={accountMode === "login" ? "selected" : ""} onClick={()=>{setAccountMode("login");setAccountError("");}}>{lang === "az" ? "Daxil ol" : "Sign in"}</button><button type="button" className={accountMode === "register" ? "selected" : ""} onClick={()=>{setAccountMode("register");setAccountError("");}}>{lang === "az" ? "Qeydiyyat" : "Register"}</button></div><form className="account-form" onSubmit={accountSubmit}><label>{t("username")}<input value={accountUsername} onChange={e=>setAccountUsername(e.target.value)} autoComplete="username" pattern="[A-Za-z0-9_]{3,32}" minLength={3} maxLength={32} required /></label><label>{t("password")}<input type="password" value={accountPassword} onChange={e=>setAccountPassword(e.target.value)} autoComplete={accountMode === "register" ? "new-password" : "current-password"} minLength={10} maxLength={128} required /></label><button className="btn dark" disabled={accountBusy}>{accountMode === "register" ? (lang === "az" ? "Hesab yarat" : "Create account") : t("login")}</button></form><small>{lang === "az" ? "İstifadəçi adı: 3–32 latın hərfi, rəqəm və ya alt xətt. Şifrə: ən azı 10 simvol." : "Username: 3–32 Latin letters, numbers or underscore. Password: at least 10 characters."}</small></>}{accountError && <p role="alert" className="account-error">{accountError}</p>}<p className="help-text">{lang === "az" ? "Hesabı dəyişərkən əvvəlki sessiyadakı göndərilməmiş sorğular ayrıca saxlanılır." : "Unsent requests from the previous session remain separate when switching accounts."}</p></section>}
         {mode === "dispatch" && (!auth ? <form className="operator-login" onSubmit={loginOperator}><strong>{t("operatorLogin")}</strong><label>{t("username")}<input value={username} onChange={event=>setUsername(event.target.value)} autoComplete="username" required/></label><label>{t("password")}<input type="password" value={password} onChange={event=>setPassword(event.target.value)} autoComplete="current-password" required/></label><button className="btn dark" type="submit">{t("login")}</button></form> : <div className="operator-session"><span>{auth.role === "admin" ? t("adminRole") : t("operatorRole")}</span><button className="btn light small" onClick={logoutOperator}>{t("logout")}</button></div>)}
+        {mode === "dispatch" && auth?.role === "admin" && <OperatorRequests token={auth.token} lang={lang}/>}
         {mode === "dispatch" && s?.security?.highSosFlow && <div className="alert-banner warning" role="status"><TriangleAlert size={18}/>{t("floodBanner")}</div>}
         {floodResult && mode === "dispatch" && <div className="alert-banner warning" role="status"><TriangleAlert size={18}/>{t("floodResult")}: {floodResult.total} · {t("accepted")}: {floodResult.counts.accepted} · 503: {floodResult.counts.RATE_GLOBAL} · {t("limiterAverage")}: {floodResult.limiterAverageMs.toFixed(2)} ms</div>}
         {!online && <div className="alert-banner error" role="status"><TriangleAlert size={18}/>{t("stale")}</div>}

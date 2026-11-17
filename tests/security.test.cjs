@@ -68,3 +68,22 @@ test("SOS inside broad bounds but far from the road graph is rejected",()=>{
 test("500-request limiter simulation is bounded and does not write SOS",()=>{
  const result=simulateFlood();assert.equal(result.total,500);assert.equal(result.counts.accepted,200);assert.equal(result.counts.RATE_GLOBAL,300);
 });
+
+
+test("citizen account passwords are salted and verification rejects wrong passwords", async () => {
+  const {makePassword,verifyPassword,validCredentials} = require("../outputs/test-build/crisis/password.js");
+  assert.equal(validCredentials("student_1","strong-password"),true);
+  assert.equal(validCredentials("a","short"),false);
+  const first=await makePassword("strong-password"), second=await makePassword("strong-password");
+  assert.notEqual(first.salt,second.salt);
+  assert.notEqual(first.hash,second.hash);
+  assert.equal(await verifyPassword("strong-password",first.salt,first.hash),true);
+  assert.equal(await verifyPassword("wrong-password",first.salt,first.hash),false);
+});
+test("citizen token cannot authorize dispatcher operations",async()=>{
+  const {signToken,authorize} = require("../outputs/test-build/crisis/auth.js");
+  const secret="x".repeat(32),token=await signToken("user","citizen","student",secret);
+  const result=await authorize("road",`Bearer ${token}`,secret);
+  assert.equal(result.ok,false);
+  assert.equal(result.status,403);
+});
