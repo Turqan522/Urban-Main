@@ -2666,3 +2666,5 @@ td {
 .operator-request{padding:10px 0;border-top:1px solid #e0e9e7}
 
 .no-sidebar main{margin-left:0}.citizen-label{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#335d55}.approved-operator-link{display:inline-flex;margin:4px 0 12px;text-decoration:none}
+
+.entry-switch{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.dispatcher-entry{display:inline-flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid #cbd9d9;border-radius:8px;color:#284f50;background:#fff;font-size:12px;font-weight:700;text-decoration:none;transition:background .15s ease,border-color .15s ease}.dispatcher-entry:hover{background:#eef7f4;border-color:#86b3a7}.dispatcher-entry:focus-visible{outline:3px solid #438e7d;outline-offset:2px}@media(max-width:520px){.toolbar{flex-wrap:wrap}.entry-switch{gap:8px}.dispatcher-entry{min-height:42px}}
