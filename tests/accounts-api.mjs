@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 const base=process.argv[2] || 'http://127.0.0.1:4173';
 if (!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(base)) throw new Error('Local demo server only');
-const username='test_'+crypto.randomUUID().replaceAll('-','').slice(0,12), password='long-test-password';
+const username='test_'+crypto.randomUUID().replaceAll('-','').slice(0,12)+'@example.com', password='1';
 const post=async(path,data,cookie='',token='')=>fetch(`${base}/api/${path}`,{method:'POST',headers:{'Content-Type':'application/json',...(cookie?{cookie}:{}),...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify(data)});
 let r=await post('account/register',{username,password});assert.equal(r.status,200,await r.clone().text());const cookies=r.headers.getSetCookie();const accountCookie=cookies.find(x=>x.startsWith('crisis_account='))?.split(';')[0];assert.ok(accountCookie);assert.match(cookies.find(x=>x.startsWith('crisis_account=')),/HttpOnly/);
-r=await post('account/register',{username,password});assert.equal(r.status,409);
+r=await post('account/register',{username:username.toUpperCase(),password});assert.equal(r.status,409);
+r=await post('account/register',{username:'not-an-email',password:'1'});assert.equal(r.status,400);
 r=await post('account/login',{username,password:'wrong-password'});assert.equal(r.status,401);
 r=await post('auth/login',{username,password});assert.equal(r.status,401);
-r=await post('account/login',{username,password});assert.equal(r.status,200);const loginCookie=r.headers.getSetCookie().find(x=>x.startsWith('crisis_account='))?.split(';')[0];assert.ok(loginCookie);
+r=await post('account/login',{username:username.toUpperCase(),password});assert.equal(r.status,200);const loginCookie=r.headers.getSetCookie().find(x=>x.startsWith('crisis_account='))?.split(';')[0];assert.ok(loginCookie);
 r=await fetch(`${base}/api/account/me`,{headers:{cookie:loginCookie}});assert.equal((await r.json()).username,username);
 r=await fetch(`${base}/api/state`,{headers:{cookie:loginCookie}});const firstState=await r.json();assert.match(firstState.sessionId,/^account:/);
 r=await post('safe',{},loginCookie);assert.equal((await r.json()).mySafety.status,'safe');
