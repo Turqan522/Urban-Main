@@ -23,6 +23,7 @@ const compile = spawnSync(
     "lib/crisis/presentation.ts",
     "lib/crisis/seed.ts",
     "lib/crisis/engine.ts",
+    "lib/crisis/live-location.ts",
     "lib/crisis/commands.ts",
     "lib/crisis/migrate.ts",
     "lib/crisis/transaction.ts",
