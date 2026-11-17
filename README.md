@@ -160,3 +160,8 @@ Bu HTTP testləri demo vəziyyətini əvvəl və sonra sıfırlayır; paralel SO
 - `AI_DECLARATION.md` — AI istifadəsi və faktiki tapşırıq.
 - `TEXNIKI_IZAH.txt` — Notepad / Word ilə açılan UTF-8 texniki izah.
 - `docs/DEMO_VE_MUDAFIE.md`, `docs/API.md`, `docs/CHALLENGE_DROP.md`, `docs/TEST_REPORT.md`.
+
+
+### Vətəndaş hesabı
+
+Vətəndaş modulunda istifadəçi adı və şəxsi şifrə ilə hesab yaratmaq və daxil olmaq mümkündür. Yeni hesab operator təsdiqini gözləyir. Administrator dispetçer panelində müraciəti təsdiqlədikdən sonra istifadəçi dispetçer panelinə öz adı və şifrəsi ilə daxil ola bilər. Şifrələr düz mətn kimi saxlanmır. Demo versiyada şifrə bərpası və e-poçt təsdiqi yoxdur; real istifadəyə verilməzdən əvvəl ayrıca təhlükəsizlik baxışı və hesab bərpası tələb olunur. Hesaba keçərkən köhnə anonim sessiyada qalmış növbə sorğuları avtomatik başqa hesaba daşınmır.
