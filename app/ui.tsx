@@ -239,12 +239,12 @@ export default function CrisisApp() {
     useEffect(() => {
         if (!s)
             return;
-        const key = `${point.lat},${point.lng}`;
+        const key = `${origin.lat},${origin.lng}:${selectedRouteId ?? ""}`;
         if (priorRoute.current && priorPoint.current === key && priorRoute.current !== routeKey)
             setNotice("rerouted");
         priorRoute.current = routeKey;
         priorPoint.current = key;
-    }, [routeKey, point.lat, point.lng, s?.revision]);
+    }, [routeKey, origin.lat, origin.lng, selectedRouteId, s?.revision]);
     async function citizenAction(path: QueuedAction["path"], body: Record<string, unknown>) {
         if (!current.current || acting.current)
             return;
