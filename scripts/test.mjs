@@ -43,7 +43,7 @@ const compile = spawnSync(
 );
 if (compile.status !== 0) process.exit(compile.status ?? 1);
 writeFileSync(out + "/package.json", '{"type":"commonjs"}');
-const tests = spawnSync(process.execPath, ["--test", "tests/engine.test.cjs", "tests/extensions.test.cjs", "tests/pwa.test.cjs", "tests/expansion.test.cjs", "tests/security.test.cjs"], {
+const tests = spawnSync(process.execPath, ["--test", "tests/engine.test.cjs", "tests/extensions.test.cjs", "tests/pwa.test.cjs", "tests/expansion.test.cjs", "tests/security.test.cjs", "tests/individual-dispatch.test.cjs"], {
   stdio: "inherit",
 });
 process.exit(tests.status ?? 1);

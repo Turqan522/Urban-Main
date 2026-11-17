@@ -168,6 +168,8 @@ async function handle(request: Request) {
       "road",
       "occupancy",
       "confirm",
+      "sos-view",
+      "sos-dispatch",
       "team-complete",
       "scenario",
       "config",

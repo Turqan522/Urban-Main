@@ -39,6 +39,9 @@ export type Sos = Point & {
   createdAt: number;
   status: "active" | "safe" | "resolved";
   assignedTeam?: string;
+  viewedAt?: number;
+  assignedAt?: number;
+  completedAt?: number;
 };
 export type Team = {
   id: string;

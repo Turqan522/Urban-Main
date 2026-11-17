@@ -5,7 +5,7 @@ export type JwtPayload = { sub: string; role: Role; name: string; iat: number; e
 const permissions: Record<string, Role[]> = {
   sos: ["citizen", "operator", "admin"], safe: ["citizen", "operator", "admin"], checkin: ["citizen", "operator", "admin"], accessibility: ["citizen", "operator", "admin"],
   "volunteer-register": ["citizen", "operator", "admin"], "volunteer-ready": ["citizen", "operator", "admin"], "volunteer-status": ["citizen", "operator", "admin"],
-  road: ["operator", "admin"], occupancy: ["operator", "admin"], confirm: ["operator", "admin"], "team-complete": ["operator", "admin"], scenario: ["operator", "admin"],
+  "sos-view": ["operator", "admin"], "sos-dispatch": ["operator", "admin"], road: ["operator", "admin"], occupancy: ["operator", "admin"], confirm: ["operator", "admin"], "team-complete": ["operator", "admin"], scenario: ["operator", "admin"],
   "volunteer-verify": ["operator", "admin"], "volunteer-dispatch": ["operator", "admin"], "resource-update": ["operator", "admin"], "resource-resupply": ["operator", "admin"],
   config: ["admin"], rules: ["admin"],
   "security-demo": ["operator", "admin"],

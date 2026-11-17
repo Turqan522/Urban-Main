@@ -184,6 +184,27 @@ export function command(state: State, action: string, b: Record<string, unknown>
         if(task.status==="completed"){task.completedAt=now;v.status="completed";delete v.activeTaskId;}
         log("VOLUNTEER_STATUS",`${v.name}: ${task.status}. Peşəkar yardım ayrıca davam edir.`,{subject:v.name});
     }
+    else if (action === "sos-view") {
+        const incident = s.sos.find(x => x.id === b.id && x.status === "active");
+        check(incident, "Aktiv SOS tapılmadı.");
+        incident.viewedAt ??= now;
+    }
+    else if (action === "sos-dispatch") {
+        const incident = s.sos.find(x => x.id === b.id && x.status === "active");
+        check(incident, "Aktiv SOS tapılmadı.");
+        check(!incident.assignedTeam, "Bu SOS üçün artıq briqada təyin edilib.");
+        const team = s.teams.find(x => x.id === b.teamId);
+        check(team && team.status === "available", "Seçilən briqada sərbəst deyil.");
+        const target = nearestNode(s, incident).id;
+        const path = teamRoute(s, team, target);
+        check(path, "Bu briqada üçün əlçatan demo marşrutu yoxdur.");
+        team.status = "dispatched"; team.incidentId = `sos:${incident.id}`;
+        team.targetNode = target; team.etaMinutes = path.etaMinutes;
+        team.routePath = path.nodeIds; team.routeMeters = Math.round(path.meters);
+        team.dispatchedAt = now; team.routeBlocked = false;
+        incident.viewedAt ??= now; incident.assignedAt = now; incident.assignedTeam = team.id;
+        log("DISPATCH", `${team.name} → ${incident.zone}. Fərdi SOS üçün operator qərarı.`, {subject: team.name, target: incident.zone});
+    }
     else if (action === "confirm") {
         if (s.decisions.some((d) => d.alertId === b.id))
             return state;
@@ -248,7 +269,7 @@ export function command(state: State, action: string, b: Record<string, unknown>
         check(team && team.status === "dispatched", "Briqada aktiv tapşırıqda deyil.");
         s.sos
             .filter((x) => x.assignedTeam === team.id && x.status === "active")
-            .forEach((x) => (x.status = "resolved"));
+            .forEach((x) => { x.status = "resolved"; x.completedAt = now; });
         team.status = "available";
         delete team.incidentId;
         delete team.targetNode;
