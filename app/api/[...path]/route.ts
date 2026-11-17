@@ -4,7 +4,7 @@ import { publicState, routes } from "../../../lib/crisis/engine";
 import { AppError, coordinates } from "../../../lib/crisis/commands";
 import { newsForPoint } from "../../../lib/crisis/news";
 import { routingCircuit } from "../../../lib/crisis/circuit-breaker";
-import { makePassword, validCredentials, validEmail, verifyPassword } from "../../../lib/crisis/password";
+import { LegacyPasswordUnsupported, makePassword, validCredentials, validEmail, verifyPassword } from "../../../lib/crisis/password";
 import { authorize, login, verifyToken, signToken } from "../../../lib/crisis/auth";
 import { loginLimiter, simulateFlood, sosRateGuard } from "../../../lib/crisis/rate-limiter";
 import { spamDetector } from "../../../lib/crisis/spam-detector";
@@ -201,6 +201,7 @@ async function handle(request: Request) {
     invalidateCache();
     return json({ ...publicState(result.state, citizen, Date.now(), access.role !== "citizen"), ...(path === "checkin" ? { alreadyCheckedIn: result.unchanged } : {}) });
   } catch (error) {
+    if (error instanceof LegacyPasswordUnsupported) return json({error:"Əvvəlki hesabın şifrəsi bu serverdə yoxlanıla bilmir. Məlumatlar silinməyib; administratorla əlaqə saxlayın.",code:"LEGACY_PASSWORD_UNSUPPORTED"},503);
     if (error instanceof AppError)
       return json({ error: error.message }, error.status);
     console.error("Crisis API error", error);
