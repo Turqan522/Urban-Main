@@ -4,7 +4,7 @@ import { publicState, routes } from "../../../lib/crisis/engine";
 import { AppError, coordinates } from "../../../lib/crisis/commands";
 import { newsForPoint } from "../../../lib/crisis/news";
 import { routingCircuit } from "../../../lib/crisis/circuit-breaker";
-import { makePassword, validCredentials, verifyPassword } from "../../../lib/crisis/password";
+import { makePassword, validCredentials, validEmail, verifyPassword } from "../../../lib/crisis/password";
 import { authorize, login, verifyToken, signToken } from "../../../lib/crisis/auth";
 import { loginLimiter, simulateFlood, sosRateGuard } from "../../../lib/crisis/rate-limiter";
 import { spamDetector } from "../../../lib/crisis/spam-detector";
@@ -116,16 +116,16 @@ async function handle(request: Request) {
       if (!loginLimiter.take(limitKey)) return json({ error: "Çox sayda cəhd. Bir az gözləyin." }, 429);
       const secret = setting("CRISIS_JWT_SECRET");
       if (secret.length < 32 || !env.DB) return json({error:"Hesab sistemi hazır deyil."},503);
-      if (!validCredentials(body.username, body.password)) return json({error:"İstifadəçi adı 3–32 latın hərfi, rəqəm və ya alt xətdən, şifrə isə 10–128 simvoldan ibarət olmalıdır."},400);
-      const username = body.username.toLowerCase(), password = body.password as string;
+      if (!validCredentials(body.username, body.password) || (path === "account/register" && !validEmail(body.username))) return json({error:"Düzgün e-poçt ünvanı və boş olmayan şifrə daxil edin."},400);
+      const username = body.username.trim().toLowerCase(), password = body.password as string;
       let id: string;
       if (path === "account/register") {
         if (["operator","admin"].includes(username)) return json({error:"Bu istifadəçi adı seçilə bilməz."},400);
         const exists = await accountDB().prepare("SELECT id FROM citizen_accounts WHERE username = ?").bind(username).first();
-        if (exists) return json({error:"Bu istifadəçi adı artıq istifadə olunur."},409);
+        if (exists) return json({error:"Bu e-poçt və ya istifadəçi adı artıq istifadə olunur."},409);
         const hashed = await makePassword(password); id = crypto.randomUUID();
         try { await accountDB().prepare("INSERT INTO citizen_accounts (id,username,password_hash,password_salt,created_at) VALUES (?,?,?,?,?)").bind(id,username,hashed.hash,hashed.salt,Date.now()).run(); }
-        catch (err) { if (String(err).includes("UNIQUE")) return json({error:"Bu istifadəçi adı artıq istifadə olunur."},409); throw err; }
+        catch (err) { if (String(err).includes("UNIQUE")) return json({error:"Bu e-poçt və ya istifadəçi adı artıq istifadə olunur."},409); throw err; }
       } else {
         const user = await accountDB().prepare("SELECT id,password_hash,password_salt FROM citizen_accounts WHERE username = ?").bind(username).first<{id:string;password_hash:string;password_salt:string}>();
         if (!user || !(await verifyPassword(password,user.password_salt,user.password_hash))) return json({error:"İstifadəçi adı və ya şifrə yanlışdır."},401);
@@ -151,7 +151,7 @@ async function handle(request: Request) {
       const result = await login(body.username, body.password, { secret, operatorPassword, adminPassword });
       if (result) return json(result);
       if (validCredentials(body.username,body.password)) {
-        const name=body.username.toLowerCase();
+        const name=body.username.trim().toLowerCase();
         const user=await accountDB().prepare("SELECT id,password_hash,password_salt FROM citizen_accounts WHERE username = ? AND operator_status = 'approved'").bind(name).first<{id:string;password_hash:string;password_salt:string}>();
         if (user && await verifyPassword(body.password as string,user.password_salt,user.password_hash)) {
           const token=await signToken(user.id,"operator",name,secret); return json({token,role:"operator",expiresAt:Date.now()+8*3600_000});
